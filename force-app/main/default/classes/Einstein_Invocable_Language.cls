@@ -1,167 +1,163 @@
 public with sharing class Einstein_Invocable_Language {
 
 	@InvocableMethod(label='Have Einstein analyze text')
-	public static void AnalyzeLanguage(list<LanguageRequest> LRs) {
+	public static void analyzeLanguage(List<LanguageRequest> languageRequests) {
 
 		//don't allow this run in future, batch, or queueable
 		if (system.isFuture() || system.isBatch() || system.isQueueable()){
 			return;
 		}
 
-		list<string> singleBatch = new list<string>();
-		list<list<string>> Batches = new list<list<string>>();
+		List<String> singleBatch = new List<String>();
+		List<List<String>> batches = new List<List<String>>();
 
-		Integer Batchsize = Limits.GetLimitCallouts()-1; //because we'll use a call to get a token for each batch
+		Integer batchSize = Limits.getLimitCallouts()-1; //because we'll use a call to get a token for each batch
 
 		//get the actual text
-		list<LanguageRequest> deduped = dedupeLRs(LRs);
-		list<ID> lrIDs = new list<ID>();
-		list<string> fields = new list<string>();
+		List<LanguageRequest> deduped = dedupeLRs(languageRequests);
+		List<ID> lrIDs = new List<ID>();
+		List<String> fields = new List<String>();
 
-		for (LanguageRequest LR:deduped){
-			lrIDs.add(LR.recordId);
-			fields.add(LR.FieldToAnalyze);
+		for (LanguageRequest languageRequest : deduped){
+			lrIDs.add(languageRequest.recordId);
+			fields.add(languageRequest.fieldToAnalyze);
 		}
 
-		string objType = id.valueOf(deduped[0].recordId).getSObjectType().getDescribe().getName();
-		string soql = 'select id, ' + string.join(fields, ', ') + ' from ' + objType +' where id in: lrIDs';
+		String objType = id.valueOf(deduped[0].recordId).getSObjectType().getDescribe().getName();
+		String soql = 'SELECT id, ' + String.join(fields, ', ') + ' FROM ' + objType +' WHERE id in :lrIDs';
 		system.debug(soql);
 
-		list<sobject> records = database.query(soql);
+		List<SObject> records = Database.query(String.escapeSingleQuotes(soql));
 		system.debug(records);
 
-		map<id, sobject> recordMap = new map<id, sobject>();
-		for (sobject so:records){
+		map<id, SObject> recordMap = new map<id, SObject>();
+		for (SObject so:records){
 			recordMap.put((id)so.get('Id'), so);
 		}
 
 		system.debug(recordMap);
 
-		for (LanguageRequest LR:deduped){
-			LR.objectType = objType;
-			LR.actualText = string.valueOf(recordMap.get(LR.recordId).get(LR.FieldToAnalyze));
+		for (LanguageRequest languageRequest : deduped){
+			languageRequest.objectType = objType;
+			languageRequest.actualText = String.valueOf(recordMap.get(languageRequest.recordId).get(languageRequest.fieldToAnalyze));
 			//batch is full, put it in the batch list, blank it for new adds
-			if (singleBatch.size()==Batchsize){
+			if (singleBatch.size()==batchsize){
 				Batches.add(singleBatch);
-				singleBatch = new list<string>();
+				singleBatch = new List<String>();
 			}
-			singleBatch.add(JSON.serialize(LR));
+			singleBatch.add(JSON.serialize(languageRequest));
 		}
 
 		Batches.add(singleBatch);
-		for (list<string> batch:batches){
+		for (List<String> batch:batches){
 			getAnalysis(batch);
 		}
 	}
 
 	@future(callout=true)
-	public static void getAnalysis(list<string> input){
+	public static void getAnalysis(List<String> input){
 
-		list<ID> lrIDs = new list<ID>();
-		set<string> fields = new set<string>();
+		List<ID> lrIDs = new List<ID>();
+		set<String> fields = new set<String>();
 
-		list<LanguageRequest> LRs = new list<LanguageRequest>();
+		List<LanguageRequest> languageRequests = new List<LanguageRequest>();
 
-		for (string s:input){
-			LRs.add((LanguageRequest)JSON.deserialize(s, LanguageRequest.class));
+		for (String s:input){
+			languageRequests.add((LanguageRequest)JSON.deserialize(s, LanguageRequest.class));
 		}
 
-		for (LanguageRequest LR:LRs){
-			lrIDs.add(LR.recordId);
+		for (LanguageRequest languageRequest : languageRequests){
+			lrIDs.add(languageRequest.recordId);
 
-			fields.add(LR.LabelStoreField);
-			if (LR.ProbabilityStoreField != null){
-				fields.add(LR.ProbabilityStoreField);
+			fields.add(languageRequest.labelStoreField);
+			if (languageRequest.probabilityStoreField != null){
+				fields.add(languageRequest.probabilityStoreField);
 			}
-			if (LR.RawStoreField != null){
-				fields.add(LR.RawStoreField);
+			if (languageRequest.rawStoreField != null){
+				fields.add(languageRequest.rawStoreField);
 			}
-            if (LR.ModelType=='Sentiment'){
+            if (languageRequest.modelType=='Sentiment'){
                 Einstein_PredictionService service = new Einstein_PredictionService(Einstein_PredictionService.Types.SENTIMENT);
-                LR.prediction = service.predictSentiment(LR.ModelId, LR.actualText, 0, '');
-            } else if (LR.ModelType=='Intent'){
+                languageRequest.prediction = service.predictSentiment(languageRequest.modelId, languageRequest.actualText, 0, '');
+            } else if (languageRequest.modelType=='Intent'){
                 Einstein_PredictionService service = new Einstein_PredictionService(Einstein_PredictionService.Types.INTENT);
-                LR.prediction = service.predictIntent(LR.ModelId, LR.actualText, 0, '');
-            } else if (LR.ModelId == null && (LR.ModelType=='Sentiment' || LR.ModelType==null)){
+                languageRequest.prediction = service.predictIntent(languageRequest.modelId, languageRequest.actualText, 0, '');
+            } else if (languageRequest.modelId == null && (languageRequest.modelType=='Sentiment' || languageRequest.modelType==null)){
                 //default this
                 Einstein_PredictionService service = new Einstein_PredictionService(Einstein_PredictionService.Types.SENTIMENT);
-                LR.prediction = service.predictSentiment('CommunitySentiment', LR.actualText, 0, '');
+                languageRequest.prediction = service.predictSentiment('CommunitySentiment', languageRequest.actualText, 0, '');
             }
-			//LR.predictions = EinsteinLanguage.Predict(LR.actualText, LR.modelType, LR.modelId, token);
-			system.debug(LR);
+			system.debug(languageRequest);
 		}
 
-		list<string> fieldNames = new list<string>(fields);
+		List<String> fieldNames = new List<String>(fields);
 
-		string soql = 'select id, ' + string.join(fieldNames, ', ') + ' from ' + LRs[0].objectType +' where id in: lrIDs';
+		String soql = 'SELECT id, ' + String.join(fieldNames, ', ') + ' FROM ' + languageRequests[0].objectType +' WHERE id in :lrIDs';
 		system.debug(soql);
 
-		list<sobject> records = database.query(soql);
+		List<SObject> records = Database.query(String.escapeSingleQuotes(soql));
 		system.debug(records);
 
-		map<id, sobject> recordMap = new map<id, sobject>();
-		for (sobject so:records){
+		map<id, SObject> recordMap = new map<id, SObject>();
+		for (SObject so:records){
 			recordMap.put((id)so.get('Id'), so);
 		}
 
 		system.debug(recordMap);
 		//handle the predictions and update that record
-		for (LanguageRequest LR:LRs){
-			recordMap.get((id)LR.recordId).put(LR.LabelStoreField, LR.prediction.probabilities[0].label);
+		for (LanguageRequest languageRequest : languageRequests){
+			recordMap.get((id)languageRequest.recordId).put(languageRequest.labelStoreField, languageRequest.prediction.probabilities[0].label);
 			//TODO: probability, raw, chatter
-			if (LR.ProbabilityStoreField != null){
+			if (languageRequest.probabilityStoreField != null){
 				try{
-					recordMap.get((id)LR.recordId).put(LR.ProbabilityStoreField, LR.prediction.probabilities[0].probability);
+					recordMap.get((id)languageRequest.recordId).put(languageRequest.probabilityStoreField, languageRequest.prediction.probabilities[0].probability);
 				} catch (SObjectException e){
 					//might be a text field instead of decimal?
-						recordMap.get((id)LR.recordId).put(LR.ProbabilityStoreField, string.valueOf(LR.prediction.probabilities[0].probability));
+						recordMap.get((id)languageRequest.recordId).put(languageRequest.probabilityStoreField, String.valueOf(languageRequest.prediction.probabilities[0].probability));
 				}
 			}
-			if (LR.RawStoreField != null){
+			if (languageRequest.rawStoreField != null){
                 // we don't need the coordinates property for anything besides object detection!
-				recordMap.get((id)LR.recordId).put(LR.RawStoreField, JSON.serialize(LR.prediction).remove(',"boundingBox":null'));
+				recordMap.get((id)languageRequest.recordId).put(languageRequest.rawStoreField, JSON.serialize(languageRequest.prediction).remove(',"boundingBox":null'));
 			}
 		}
 
-		list<sobject> output = recordMap.values();
-		update output;
+		List<SObject> output = recordMap.values();
+		Database.update(output);
 
 	}
 
 	public class LanguageRequest {
-		@InvocableVariable (required=true label='RecordId of record to Analyze')
-		public string RecordId;
+		@InvocableVariable (required=true label='recordId of record to Analyze')
+		public String recordId;
 
 		@InvocableVariable (required=true label='Field to Analyze')
-		public string FieldToAnalyze;
+		public String fieldToAnalyze;
 
 		@InvocableVariable (required=true label='Field to Store Answer' description='The top label will be stored in this text field')
-		public string LabelStoreField;
+		public String labelStoreField;
 
 		@InvocableVariable (label='Field to Store Probability' description='The probability on the top label will be stored in this number/percentage field')
-		public string ProbabilityStoreField;
+		public String probabilityStoreField;
 
 		@InvocableVariable (label='Field to Store Raw Results' description='This text field will get all predictions (label/probability pairs) stored as JSON')
-		public string RawStoreField;
-
-		//@InvocableVariable (label='Reply in Chatter')
-		//public boolean replyInChatter;
+		public String rawStoreField;
 
 		@InvocableVariable (label='Model Id' description='Model Id from Einstein (not the Salesforce ID)')
-		public string ModelId;
+		public String modelId;
 
 		@InvocableVariable (label='Model Type' description='Allowed values are Sentiment and Intent')
-		public string ModelType;
+		public String modelType;
 
-		public string actualText;
-		public string objectType;
+		public String actualText;
+		public String objectType;
 
 		public Einstein_PredictionResult prediction;
 	}
 
-	public static list<LanguageRequest> dedupeLRs(list<LanguageRequest> input){
+	public static List<LanguageRequest> dedupeLRs(List<LanguageRequest> input){
 		set<LanguageRequest> temp = new set<LanguageRequest>(input);
-		return new list<LanguageRequest>(temp);
+		return new List<LanguageRequest>(temp);
 	}
 
 }

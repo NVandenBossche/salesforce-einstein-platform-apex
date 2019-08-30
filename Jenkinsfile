@@ -42,7 +42,7 @@ node {
 			    rmsg = bat returnStdout: true, script: "${toolbelt} force:org:create --definitionfile config/project-scratch-def.json --json --setdefaultusername"
 			}
 
-            printf rmsg
+            println rmsg
 
             def jsonSlurper = new JsonSlurperClassic()
             def robj = jsonSlurper.parseText(rmsg)

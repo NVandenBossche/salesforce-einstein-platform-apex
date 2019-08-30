@@ -1,11 +1,22 @@
 {
     "packageDirectories": [
-      {
-        "path": "force-app",
-        "default": true
-      }
+        {
+            "path": "force-app",
+            "package": "einstein-apex",
+            "versionName": "Version 1.1.1",
+            "versionNumber": "1.1.1.NEXT",
+            "default": true
+        }
     ],
     "namespace": "",
     "sfdcLoginUrl": "https://login.salesforce.com",
-    "sourceApiVersion": "42.0"
-  }
+    "sourceApiVersion": "42.0",
+    "packageAliases": {
+        "einstein-apex": "0Ho1p000000fxSkCAI",
+        "einstein-apex@1.0.0-1": "04t1p0000002PKQAA2",
+        "einstein-apex@1.1.0-1": "04t1p0000002PKVAA2",
+        "einstein-apex@1.1.1-1": "04t1p0000002PKaAAM",
+        "einstein-apex@1.1.1-2": "04t1p0000002PKfAAM",
+        "einstein-apex@1.1.1-4": "04t1p0000006XoZAAU"
+    }
+}

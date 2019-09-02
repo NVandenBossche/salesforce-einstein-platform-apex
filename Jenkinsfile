@@ -45,7 +45,7 @@ node {
 
             println rmsg
 
-            def jsonParsed = rmsg.subString(rmsg.indexOf('\n')+1)
+            def jsonParsed = rmsg.subString((int) (rmsg.indexOf('\n')+1))
 
             println jsonParsed
 

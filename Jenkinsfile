@@ -5,7 +5,7 @@ node {
 
     def BUILD_NUMBER=env.BUILD_NUMBER
     def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
-    def SFDC_USERNAME
+    def SFDC_USERNAME="DevEd"
 
     def HUB_ORG = env.HUB_ORG_DH
     def SFDC_HOST = env.SFDC_HOST_DH
@@ -26,6 +26,7 @@ node {
     }
 
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+        /**
         stage('Create Scratch Org') {
 
             if (isUnix()) {
@@ -45,7 +46,7 @@ node {
 
             println rmsg
 
-            // For Windows, remove leading gibberish
+            // For Windows, remove leading gibberish (TODO: Use "@echo off")
             if (!isUnix()) {
                 def jsonParsed = rmsg.substring((int) (rmsg.indexOf('\n')+1))
                 rmsg = jsonParsed.substring((int) (jsonParsed.indexOf('\n')+1))
@@ -57,6 +58,7 @@ node {
             SFDC_USERNAME=robj.result.username
             robj = null
         }
+        **/
 
         stage('Push To Test Org') {
             if (isUnix()) {

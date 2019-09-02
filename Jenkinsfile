@@ -45,12 +45,14 @@ node {
 
             println rmsg
 
-            def jsonParsed = rmsg.substring((int) (rmsg.indexOf('\n')+1))
-
-            println jsonParsed
+            // For Windows, remove leading gibberish
+            if (!isUnix()) {
+                def jsonParsed = rmsg.substring((int) (rmsg.indexOf('\n')+1))
+                rmsg = jsonParsed.substring((int) (jsonParsed.indexOf('\n')+1))
+            }
 
             def jsonSlurper = new JsonSlurperClassic()
-            def robj = jsonSlurper.parseText(jsonParsed)
+            def robj = jsonSlurper.parseText(rmsg)
             if (robj.status != 0) { error 'org creation failed: ' + robj.message }
             SFDC_USERNAME=robj.result.username
             robj = null
@@ -67,14 +69,14 @@ node {
             }
 
             // assign permset
-            if (isUnix()) {
+            /*if (isUnix()) {
                 rc = sh returnStatus: true, script: "${toolbelt} force:user:permset:assign --targetusername ${SFDC_USERNAME} --permsetname DreamHouse"
             } else {
                 rc = bat returnStatus: true, script: "${toolbelt} force:user:permset:assign --targetusername ${SFDC_USERNAME} --permsetname DreamHouse"
             }
             if (rc != 0) {
                 error 'permset:assign failed'
-            }
+            }*/
         }
 
         stage('Run Apex Test') {

@@ -1,12 +1,6 @@
 #!groovy
 import groovy.json.JsonSlurperClassic
 
-properties(
-    [
-        pipelineTriggers([githubPush]),
-    ]
-)
-
 node {
 
     def BUILD_NUMBER=env.BUILD_NUMBER

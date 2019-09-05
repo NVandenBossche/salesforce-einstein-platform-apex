@@ -85,7 +85,7 @@ node {
             sh "mkdir -p ${RUN_ARTIFACT_DIR}"
             timeout(time: 120, unit: 'SECONDS') {
                 if(isUnix()) {
-                    rc = sh returnStatus: true, script: "${toolbelt}\" force:apex:test:run --testlevel RunLocalTests --outputdir ${RUN_ARTIFACT_DIR} --resultformat tap --targetusername ${SFDC_USERNAME}"
+                    rc = sh returnStatus: true, script: "${toolbelt} force:apex:test:run --testlevel RunLocalTests --outputdir ${RUN_ARTIFACT_DIR} --resultformat tap --targetusername ${SFDC_USERNAME}"
                 } else {
                     rc = bat returnStatus: true, script: "${toolbelt} force:apex:test:run --testlevel RunLocalTests --outputdir ${RUN_ARTIFACT_DIR} --resultformat tap --targetusername ${SFDC_USERNAME}"
                 }
@@ -97,6 +97,11 @@ node {
 
         stage('collect results') {
             junit keepLongStdio: true, testResults: 'tests/**/*-junit.xml'
+        }
+
+        stage('Run Selenium Test') {
+            // TODO: Use TestNG to collect results - check with ASG?
+            rc = sh returnStatus: true, script: "cd C:\\Selenium\\testforjenkins && mvn clean install && java -jar .\\targer\\seleniumtest-1.0-SNAPSHOT.jar"
         }
     }
 }

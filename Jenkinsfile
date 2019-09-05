@@ -2,10 +2,9 @@
 import groovy.json.JsonSlurperClassic
 
 node {
-
-    def BUILD_NUMBER=env.BUILD_NUMBER
+    def BUILD_NUMBER="1.0"
     def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
-    def SFDC_USERNAME
+    def SFDC_USERNAME="test-dbldwbrkoioo@example.com"
 
     def HUB_ORG = env.HUB_ORG_DH
     def SFDC_HOST = env.SFDC_HOST_DH
@@ -28,34 +27,36 @@ node {
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
         stage('Create Scratch Org') {
 
-            if (isUnix()) {
-                rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
-            } else {
-                rc = bat returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile \"${jwt_key_file}\" --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
-            }            
-            
-            if (rc != 0) { error 'hub org authorization failed' }
+            if ("${SFDC_USERNAME}" == "") {
+                if (isUnix()) {
+                    rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+                } else {
+                    rc = bat returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile \"${jwt_key_file}\" --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+                }            
+                
+                if (rc != 0) { error 'hub org authorization failed' }
 
-            // need to pull out assigned username
-			if (isUnix()) {
-				rmsg = sh returnStdout: true, script: "${toolbelt} force:org:create --definitionfile config/project-scratch-def.json --json --setdefaultusername"
-			} else {
-			    rmsg = bat returnStdout: true, script: "${toolbelt} force:org:create --definitionfile config/project-scratch-def.json --json --setdefaultusername"
-			}
+                // need to pull out assigned username
+                if (isUnix()) {
+                    rmsg = sh returnStdout: true, script: "${toolbelt} force:org:create --definitionfile config/project-scratch-def.json --json --setdefaultusername"
+                } else {
+                    rmsg = bat returnStdout: true, script: "${toolbelt} force:org:create --definitionfile config/project-scratch-def.json --json --setdefaultusername"
+                }
 
-            println rmsg
+                println rmsg
 
-            // For Windows, remove leading gibberish (TODO: Use "@echo off")
-            if (!isUnix()) {
-                def jsonParsed = rmsg.substring((int) (rmsg.indexOf('\n')+1))
-                rmsg = jsonParsed.substring((int) (jsonParsed.indexOf('\n')+1))
+                // For Windows, remove leading gibberish (TODO: Use "@echo off")
+                if (!isUnix()) {
+                    def jsonParsed = rmsg.substring((int) (rmsg.indexOf('\n')+1))
+                    rmsg = jsonParsed.substring((int) (jsonParsed.indexOf('\n')+1))
+                }
+
+                def jsonSlurper = new JsonSlurperClassic()
+                def robj = jsonSlurper.parseText(rmsg)
+                if (robj.status != 0) { error 'org creation failed: ' + robj.message }
+                SFDC_USERNAME=robj.result.username
+                robj = null
             }
-
-            def jsonSlurper = new JsonSlurperClassic()
-            def robj = jsonSlurper.parseText(rmsg)
-            if (robj.status != 0) { error 'org creation failed: ' + robj.message }
-            SFDC_USERNAME=robj.result.username
-            robj = null
         }
 
         stage('Push To Test Org') {

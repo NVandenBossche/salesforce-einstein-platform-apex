@@ -27,7 +27,7 @@ node {
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
         stage('Create Scratch Org') {
 
-            if ("${SFDC_USERNAME}" == "") {
+            //if ("${SFDC_USERNAME}" == "") {
                 if (isUnix()) {
                     rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
                 } else {
@@ -56,7 +56,7 @@ node {
                 if (robj.status != 0) { error 'org creation failed: ' + robj.message }
                 SFDC_USERNAME=robj.result.username
                 robj = null
-            }
+            //}
         }
 
         stage('Push To Test Org') {

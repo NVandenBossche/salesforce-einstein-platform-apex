@@ -3,8 +3,8 @@ import groovy.json.JsonSlurperClassic
 
 node {
     def BUILD_NUMBER="1.0"
-    def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
-    def SFDC_USERNAME="test-dbldwbrkoioo@example.com"
+    def RUN_ARTIFACT_DIR="tests\\${BUILD_NUMBER}"
+    def SFDC_USERNAME
 
     def HUB_ORG = env.HUB_ORG_DH
     def SFDC_HOST = env.SFDC_HOST_DH
@@ -81,7 +81,7 @@ node {
         }
 
         stage('Run Apex Test') {
-            sh "mkdir -p ${RUN_ARTIFACT_DIR}"
+            //bat "mkdir -p ${RUN_ARTIFACT_DIR}"
             timeout(time: 120, unit: 'SECONDS') {
                 if(isUnix()) {
                     rc = sh returnStatus: true, script: "${toolbelt} force:apex:test:run --testlevel RunLocalTests --outputdir ${RUN_ARTIFACT_DIR} --resultformat tap --targetusername ${SFDC_USERNAME}"
@@ -100,7 +100,7 @@ node {
 
         stage('Run Selenium Test') {
             // TODO: Use TestNG to collect results - check with ASG?
-            rc = sh returnStatus: true, script: "cd C:\\Selenium\\testforjenkins && mvn clean install && java -jar .\\targer\\seleniumtest-1.0-SNAPSHOT.jar"
+            rc = bat returnStatus: true, script: "cd C:\\Selenium\\testforjenkins && mvn clean install && java -jar .\\target\\seleniumtest-1.0-SNAPSHOT.jar"
         }
     }
 }

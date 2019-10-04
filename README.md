@@ -43,7 +43,7 @@ run the orgInit.sh script
 
 Again thanks to Wade for creating this neat feature.
 
-[![Deploy](https://deploy-to-sfdx.com/dist/assets/images/DeployToSFDX.svg)](https://deploy-to-sfdx.com/)
+[![Deploy](https://deploy-to-sfdx.com/dist/assets/images/DeployToSFDX.svg)](https://deploy-to-sfdx-accenture-test.herokuapp.com/)
 
 
 ### Salesforce DX - deploy into developer edition or production org
